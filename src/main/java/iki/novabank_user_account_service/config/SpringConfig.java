@@ -28,32 +28,38 @@ public class SpringConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration){
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) {
         return configuration.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity){
-       httpSecurity
-               .csrf(AbstractHttpConfigurer::disable)
-               .authorizeHttpRequests(request->{
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
+        httpSecurity
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(request -> {
 
-                   //roles
-                   request.requestMatchers("/api/v1/roles/**").hasRole("ADMIN");
+                    //roles
+                    request.requestMatchers("/api/v1/roles/**").hasRole("ADMIN");
 
-                   //register & login
-                   request.requestMatchers("/api/v1/auth/**").permitAll();
+                    // Public Actuator health endpoint
+                    request.requestMatchers("/actuator/health").permitAll();
 
-           request.anyRequest().authenticated();
-       });
-       httpSecurity.exceptionHandling(exception->
-               exception.authenticationEntryPoint(jwtAuthenticationEntry));
-       httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                    // Admin-only Actuator endpoints
+                    request.requestMatchers("/actuator/**").hasRole("ADMIN");
+
+                    //register & login
+                    request.requestMatchers("/api/v1/auth/**").permitAll();
+
+                    request.anyRequest().authenticated();
+                });
+        httpSecurity.exceptionHandling(exception ->
+                exception.authenticationEntryPoint(jwtAuthenticationEntry));
+        httpSecurity.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return httpSecurity.build();
     }
 }
